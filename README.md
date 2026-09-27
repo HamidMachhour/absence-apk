@@ -2,75 +2,119 @@
 
 Sample Android attendance app for teacher workflows with Laravel + Mosquitto integration.
 
-## Included in this sample
+## Overview
 
-- Teacher login with Laravel token persistence
-- Seance roster fetch and local Room caching
-- Attendance mark toggle (present/absent) with absent count
-- Offline queue for failed submissions using Room + retry flow
-- MQTT subscription to `teacher/{teacherId}/seances`
-- Local notification channel for MQTT seance alerts
-- Simple Compose UI for login, home, and roster attendance flow
+This project is a minimal but functional teacher attendance app built with Kotlin, Jetpack Compose, Retrofit, Room, DataStore, WorkManager and MQTT. It supports teacher login, seance selection, roster loading, attendance marking, attendance submission, saved last roster access, and real-time MQTT seance notifications.
+
+## Included features
+
+- Teacher login against Laravel with token persistence
+- Session persistence using DataStore
+- Teacher seance selection and roster loading
+- Local caching of rosters in Room
+- Open last saved roster quickly from local cache
+- Attendance toggling for each student with present/absent states
+- Attendance submission to Laravel
+- Pending sync / retry logic for queued attendance submissions
+- MQTT connection and subscription to teacher seance alerts
+- Collapsible session header and roster summary cards
+- Navigation drawer with logout action
+- English and Arabic language switch
+- Persistent language choice
+- Mobile-friendly Compose UI optimized for teacher usage
+
+## Screens and flows
+
+### Login screen
+
+- Laravel base URL field
+- email and password fields
+- MQTT host, port, username and password settings
+- language toggle (EN / AR)
+- login button with loading state
+- error handling for failed login
+
+### Home screen
+
+- teacher welcome header
+- drawer menu accessible from top-left icon
+- language switch from drawer or top bar
+- collapsible session card containing:
+  - MQTT status
+  - last MQTT message
+  - seance selector
+- buttons to:
+  - load roster
+  - open last roster
+  - logout
+
+### Roster attendance screen
+
+- collapsed/expanded summary card for the selected seance
+- total absent count
+- reset attendance button
+- submit attendance button
+- student list with present/absent switch per row
+- scrollable roster list
+
+## Architecture
+
+- Compose UI + ViewModel state
+- Retrofit for Laravel API communication
+- Room database for roster cache and local pending sync data
+- DataStore for auth, settings, and language preference
+- MQTT client for push seance notifications
+- Local notification channel support for MQTT alerts
 
 ## Project structure
 
-- `app/src/main/java/com/absenceapp/teacher/data` – repositories, API DTOs, data store/session logic
-- `app/src/main/java/com/absenceapp/teacher/domain` – domain models
-- `app/src/main/java/com/absenceapp/teacher/mqtt` – MQTT client wrapper
-- `app/src/main/java/com/absenceapp/teacher/network` – Retrofit client
-- `app/src/main/java/com/absenceapp/teacher/ui` – Compose screens and ViewModel
-- `app/src/main/java/com/absenceapp/teacher/data/local` – Room database and entities
+- `app/src/main/java/com/absenceapp/teacher/data` – session storage, repositories, DTOs
+- `app/src/main/java/com/absenceapp/teacher/domain` – domain models and enums
+- `app/src/main/java/com/absenceapp/teacher/mqtt` – MQTT manager and message parsing
+- `app/src/main/java/com/absenceapp/teacher/network` – Retrofit base client and API configuration
+- `app/src/main/java/com/absenceapp/teacher/ui` – Compose screens, drawer UI, and ViewModel
+- `app/src/main/java/com/absenceapp/teacher/data/local` – Room entities and DAO layer
 
-## Architecture summary
+## Backend contract
 
-This is intentionally small and clean:
+The app expects the following Laravel endpoints:
 
-- Compose UI + ViewModel state drives the screens.
-- Retrofit handles Laravel REST calls.
-- Room stores roster and pending submissions locally.
-- DataStore stores token and config values.
-- MQTT client subscribes to teacher alerts and exposes the latest event to the UI.
-- Attendance sync is queued locally when offline and retried when connectivity returns.
+- `POST /api/auth/login`
+- `GET /api/v1/teachers/me/seances`
+- `GET /api/v1/seances/{seance}/roster`
+- `POST /api/v1/seances/{seance}/attendance`
 
-## Local setup
-
-1. Install Android Studio or the Android SDK.
-2. Open the project in Android Studio.
-3. Set a valid Android SDK path if prompted.
-4. Update the default config values in the login form before running:
-   - Laravel base URL: e.g. `http://192.168.1.2:8000`
-   - MQTT host: your PC LAN IP, not `127.0.0.1` on the phone
-   - MQTT port: `1883`
-   - MQTT username/password: your Mosquitto credentials
-5. Run the app on a physical Android device or emulator.
-
-## Laravel expectations
-
-This client is written to fit the payloads you described:
-
-- Login: `POST /api/auth/login`
-- Fetch roster: `GET /api/v1/seances/{seance}/roster`
-- Submit attendance: `POST /api/v1/seances/{seance}/attendance`
-
-If the backend shape differs from the examples, the parsing is intentionally tolerant and the DTOs can be adapted with minimal changes.
-
-## MQTT details
-
-The app subscribes to the teacher alert topic:
+MQTT topic:
 
 - `teacher/{teacherId}/seances`
 
-When the payload contains `event = "seance_starting"`, the app keeps the latest message in ViewModel state and exposes it in the UI.
+## Local setup
 
-## Offline-first behavior
+1. Install Android Studio and the Android SDK.
+2. Open this folder in Android Studio.
+3. Set the SDK path if prompted.
+4. On a real phone, use your machine's LAN IP instead of `127.0.0.1`.
+5. In the login form, set the Laravel base URL and MQTT details.
+6. Run the app on a real device or emulator.
 
-- Rosters are cached locally in Room.
-- When attendance submission fails because the device is offline, the app stores a pending item locally.
-- The retry flow can be triggered via the ViewModel when the app is back online.
+Example values:
+
+- Laravel base URL: `http://192.168.1.2:8000`
+- MQTT host: `192.168.1.2`
+- MQTT port: `1883`
+
+## Language support
+
+The app supports:
+
+- English (`EN`)
+- Arabic (`AR`)
+
+The selected language is saved and restored automatically between sessions.
 
 ## Build verification
 
-This workspace was verified with:
+This project was verified with:
 
 ```bash
 cd /mnt/data_nvme/absence_app_project/absence-apk
@@ -83,8 +127,8 @@ Result: `BUILD SUCCESSFUL`.
 
 ## Notes
 
-- This is a small sample app, not a full production attendance system.
-- The app uses a simple local notification channel for MQTT seance alerts.
-- If your Laravel response shape differs, review the DTOs in the `data/remote` package and adapt the parser accordingly.
-- For a real device, use your computer's LAN IP instead of `127.0.0.1` in both Laravel and MQTT settings.
+- This sample app is intended for local development and demo usage.
+- It is intentionally lightweight and easy to adapt to your Laravel backend.
+- The roster response should return valid JSON for the app to parse correctly.
+- MQTT and Laravel settings should use the same LAN network values when running on a physical phone.
 
