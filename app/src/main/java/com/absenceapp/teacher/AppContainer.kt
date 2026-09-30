@@ -19,7 +19,7 @@ class AppContainer(private val context: Context) {
         "absence_app_db",
     ).fallbackToDestructiveMigration().build()
 
-    val laravelApiClient = LaravelApiClient("http://10.0.0.11:8000")
+    val laravelApiClient = LaravelApiClient("http://10.0.0.11:8282")
     val authRepository = AuthRepository(laravelApiClient.service, context)
     val rosterRepository = RosterRepository(laravelApiClient.service, db)
     val attendanceRepository = AttendanceRepository(context, db)

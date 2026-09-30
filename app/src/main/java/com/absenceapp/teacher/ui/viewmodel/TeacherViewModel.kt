@@ -70,6 +70,24 @@ class TeacherViewModel(private val container: AppContainer) : ViewModel() {
         _uiState.value = _uiState.value.copy(baseUrl = value)
     }
 
+    fun saveBaseUrl() {
+        val baseUrl = _uiState.value.baseUrl.trim()
+        if (baseUrl.isBlank()) return
+
+        viewModelScope.launch {
+            container.sessionStore.saveBaseUrl(baseUrl)
+            container.updateApiBaseUrl(baseUrl)
+            _uiState.value = _uiState.value.copy(
+                baseUrl = baseUrl,
+                settingsMessage = "Base URL saved",
+            )
+
+            if (_uiState.value.session != null) {
+                loadTeacherSeances()
+            }
+        }
+    }
+
     fun updateMqttConfig(config: MqttConfig) {
         _uiState.value = _uiState.value.copy(mqttConfig = config)
     }
@@ -276,7 +294,7 @@ data class AppUiState(
     val email: String = "",
     val password: String = "",
     val language: AppLanguage = AppLanguage.EN,
-    val baseUrl: String = "http://192.168.1.2:8000",
+    val baseUrl: String = "http://10.0.0.11:8282",
     val seanceId: String = "",
     val availableSeanceOptions: List<SeanceOption> = emptyList(),
     val roster: SeanceRoster? = null,
@@ -292,4 +310,5 @@ data class AppUiState(
     val mqttStatus: String = "Disconnected",
     val mqttConnected: Boolean = false,
     val lastMqttMessage: String = "",
+    val settingsMessage: String? = null,
 )

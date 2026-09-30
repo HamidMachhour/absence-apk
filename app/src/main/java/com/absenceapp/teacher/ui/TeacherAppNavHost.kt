@@ -78,10 +78,15 @@ data class AppStrings(
     val absent: String,
     val teacher: String,
     val language: String,
-    val translatedBy: String,
     val welcome: String,
     val salle: String,
     val absentCount: String,
+    val settings: String,
+    val home: String,
+    val apiBaseUrl: String,
+    val save: String,
+    val currentBaseUrl: String,
+    val settingsHint: String,
 ) {
     companion object {
         fun forLanguage(language: AppLanguage): AppStrings = when (language) {
@@ -113,10 +118,15 @@ data class AppStrings(
                 absent = "Absent",
                 teacher = "Teacher",
                 language = "Language",
-                translatedBy = "Language",
                 welcome = "Welcome",
                 salle = "Salle",
                 absentCount = "Absent",
+                settings = "Settings",
+                home = "Home",
+                apiBaseUrl = "Laravel Base URL",
+                save = "Save",
+                currentBaseUrl = "Current URL",
+                settingsHint = "Update the Laravel address here when the server port changes.",
             )
             AppLanguage.AR -> AppStrings(
                 teacherLogin = "تسجيل دخول المعلم",
@@ -146,13 +156,23 @@ data class AppStrings(
                 absent = "غائب",
                 teacher = "المعلم",
                 language = "اللغة",
-                translatedBy = "اللغة",
                 welcome = "مرحبًا",
                 salle = "القاعة",
                 absentCount = "الغائبون",
+                settings = "الإعدادات",
+                home = "الرئيسية",
+                apiBaseUrl = "رابط Laravel",
+                save = "حفظ",
+                currentBaseUrl = "الرابط الحالي",
+                settingsHint = "يمكنك تحديث عنوان Laravel هنا عندما يتغير المنفذ.",
             )
         }
     }
+}
+
+private enum class HomeSection {
+    HOME,
+    SETTINGS,
 }
 
 @Composable
@@ -301,6 +321,7 @@ fun SeancePicker(
 @Composable
 fun HomeScreen(uiState: AppUiState, viewModel: TeacherViewModel) {
     val strings = AppStrings.forLanguage(uiState.language)
+    var currentSection by remember { mutableStateOf(HomeSection.HOME) }
     var rosterExpanded by remember { mutableStateOf(true) }
     var headerExpanded by remember { mutableStateOf(true) }
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
@@ -316,6 +337,22 @@ fun HomeScreen(uiState: AppUiState, viewModel: TeacherViewModel) {
                     style = MaterialTheme.typography.titleLarge,
                 )
                 HorizontalDivider()
+                NavigationDrawerItem(
+                    label = { Text(strings.home) },
+                    selected = currentSection == HomeSection.HOME,
+                    onClick = {
+                        currentSection = HomeSection.HOME
+                        scope.launch { drawerState.close() }
+                    },
+                )
+                NavigationDrawerItem(
+                    label = { Text(strings.settings) },
+                    selected = currentSection == HomeSection.SETTINGS,
+                    onClick = {
+                        currentSection = HomeSection.SETTINGS
+                        scope.launch { drawerState.close() }
+                    },
+                )
                 NavigationDrawerItem(
                     label = { Text(strings.language) },
                     selected = false,
@@ -355,18 +392,21 @@ fun HomeScreen(uiState: AppUiState, viewModel: TeacherViewModel) {
                         Text(if (uiState.language == AppLanguage.EN) "AR" else "EN")
                     }
                     Text(
-                        "${uiState.session?.teacherName ?: strings.teacher}",
+                        uiState.session?.teacherName ?: strings.teacher,
                         style = MaterialTheme.typography.titleLarge,
                     )
                 }
             },
         ) { paddingValues ->
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-                    .padding(16.dp),
-            ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .padding(16.dp),
+        ) {
+            if (currentSection == HomeSection.SETTINGS) {
+                SettingsScreen(uiState, strings, viewModel)
+            } else {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     onClick = { headerExpanded = !headerExpanded },
@@ -457,7 +497,9 @@ fun HomeScreen(uiState: AppUiState, viewModel: TeacherViewModel) {
                                 items(uiState.roster.students) { student ->
                                     val absent = uiState.attendanceDraft[student.id] == true
                                     Row(
-                                        modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(vertical = 6.dp),
                                         verticalAlignment = Alignment.CenterVertically,
                                         horizontalArrangement = Arrangement.SpaceBetween,
                                     ) {
@@ -478,6 +520,38 @@ fun HomeScreen(uiState: AppUiState, viewModel: TeacherViewModel) {
                     }
                 }
             }
+        }
+    }
+}
+
+}
+
+@Composable
+private fun SettingsScreen(
+    uiState: AppUiState,
+    strings: AppStrings,
+    viewModel: TeacherViewModel,
+) {
+    Column {
+        Text(strings.settings, style = MaterialTheme.typography.headlineSmall)
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(strings.settingsHint)
+        Spacer(modifier = Modifier.height(16.dp))
+        OutlinedTextField(
+            value = uiState.baseUrl,
+            onValueChange = { viewModel.updateBaseUrl(it) },
+            label = { Text(strings.apiBaseUrl) },
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text("${strings.currentBaseUrl}: ${uiState.baseUrl}")
+        Spacer(modifier = Modifier.height(16.dp))
+        Button(onClick = { viewModel.saveBaseUrl() }) {
+            Text(strings.save)
+        }
+        uiState.settingsMessage?.let {
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(it, color = MaterialTheme.colorScheme.primary)
         }
     }
 }

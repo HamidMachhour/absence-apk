@@ -52,6 +52,12 @@ class SessionStore(private val context: Context) {
         }
     }
 
+    suspend fun saveBaseUrl(baseUrl: String) {
+        context.dataStore.edit { prefs ->
+            prefs[Keys.baseUrl] = baseUrl.trimEnd('/')
+        }
+    }
+
     suspend fun saveLanguage(language: AppLanguage) {
         context.dataStore.edit { prefs ->
             prefs[Keys.language] = language.code
