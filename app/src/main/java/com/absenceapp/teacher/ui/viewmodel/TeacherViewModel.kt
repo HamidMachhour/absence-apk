@@ -193,7 +193,7 @@ class TeacherViewModel(private val container: AppContainer) : ViewModel() {
             } catch (e: Exception) {
                 val friendlyError = when {
                     e.message?.contains("Unexpected JSON token") == true || e.message?.contains("<!DOCTYPE html>") == true ->
-                        "Laravel returned HTML instead of JSON. Check the roster route and auth token."
+                        "API returned HTML instead of JSON. Check the roster route and auth token."
                     else -> e.message ?: "Failed to load roster"
                 }
                 _uiState.value = _uiState.value.copy(isLoading = false, rosterError = friendlyError)

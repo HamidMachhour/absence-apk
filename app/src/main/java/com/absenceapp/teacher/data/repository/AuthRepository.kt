@@ -18,8 +18,8 @@ class AuthRepository(
         val body = response.body() ?: throw IllegalStateException("Empty auth response")
         val token = body.token ?: throw IllegalStateException("Auth response missing token")
         val teacherId = body.user?.id ?: body.teacher?.id ?: body.id ?: "unknown"
-        val teacherName = body.user?.name ?: body.teacher?.name ?: body.name ?: "Teacher"
         val teacherEmail = body.user?.email ?: body.teacher?.email ?: body.email ?: email
+        val teacherName = teacherEmail
 
         return TeacherSession(
             teacherId = teacherId,

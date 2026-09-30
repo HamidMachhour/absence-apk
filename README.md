@@ -1,6 +1,6 @@
 # Absence APK
 
-Sample Android attendance app for teacher workflows with Laravel + Mosquitto integration.
+Sample Android attendance app for teacher workflows with API + Mosquitto integration.
 
 ## Overview
 
@@ -8,13 +8,13 @@ This project is a minimal but functional teacher attendance app built with Kotli
 
 ## Included features
 
-- Teacher login against Laravel with token persistence
+- Teacher login against API with token persistence
 - Session persistence using DataStore
 - Teacher seance selection and roster loading
 - Local caching of rosters in Room
 - Open last saved roster quickly from local cache
 - Attendance toggling for each student with present/absent states
-- Attendance submission to Laravel
+- Attendance submission to API
 - Pending sync / retry logic for queued attendance submissions
 - MQTT connection and subscription to teacher seance alerts
 - Collapsible session header and roster summary cards
@@ -27,7 +27,7 @@ This project is a minimal but functional teacher attendance app built with Kotli
 
 ### Login screen
 
-- Laravel base URL field
+- API base URL field
 - email and password fields
 - MQTT host, port, username and password settings
 - language toggle (EN / AR)
@@ -60,7 +60,7 @@ This project is a minimal but functional teacher attendance app built with Kotli
 ## Architecture
 
 - Compose UI + ViewModel state
-- Retrofit for Laravel API communication
+- Retrofit for API API communication
 - Room database for roster cache and local pending sync data
 - DataStore for auth, settings, and language preference
 - MQTT client for push seance notifications
@@ -77,7 +77,7 @@ This project is a minimal but functional teacher attendance app built with Kotli
 
 ## Backend contract
 
-The app expects the following Laravel endpoints:
+The app expects the following API endpoints:
 
 - `POST /api/auth/login`
 - `GET /api/v1/teachers/me/seances`
@@ -94,12 +94,12 @@ MQTT topic:
 2. Open this folder in Android Studio.
 3. Set the SDK path if prompted.
 4. On a real phone, use your machine's LAN IP instead of `127.0.0.1`.
-5. In the login form, set the Laravel base URL and MQTT details.
+5. In the login form, set the API base URL and MQTT details.
 6. Run the app on a real device or emulator.
 
 Example values:
 
-- Laravel base URL: `http://192.168.1.2:8000`
+- API base URL: `http://192.168.1.2:8000`
 - MQTT host: `192.168.1.2`
 - MQTT port: `1883`
 
@@ -128,7 +128,7 @@ Result: `BUILD SUCCESSFUL`.
 ## Notes
 
 - This sample app is intended for local development and demo usage.
-- It is intentionally lightweight and easy to adapt to your Laravel backend.
+- It is intentionally lightweight and easy to adapt to your API backend.
 - The roster response should return valid JSON for the app to parse correctly.
-- MQTT and Laravel settings should use the same LAN network values when running on a physical phone.
+- MQTT and API settings should use the same LAN network values when running on a physical phone.
 

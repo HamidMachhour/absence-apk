@@ -92,7 +92,7 @@ data class AppStrings(
         fun forLanguage(language: AppLanguage): AppStrings = when (language) {
             AppLanguage.EN -> AppStrings(
                 teacherLogin = "Teacher Login",
-                laravelBaseUrl = "Laravel Base URL",
+                laravelBaseUrl = "API Base URL",
                 email = "Email",
                 password = "Password",
                 mqttHost = "MQTT Host",
@@ -123,14 +123,14 @@ data class AppStrings(
                 absentCount = "Absent",
                 settings = "Settings",
                 home = "Home",
-                apiBaseUrl = "Laravel Base URL",
+                apiBaseUrl = "API Base URL",
                 save = "Save",
                 currentBaseUrl = "Current URL",
-                settingsHint = "Update the Laravel address here when the server port changes.",
+                settingsHint = "Update the API address here when the server port changes.",
             )
             AppLanguage.AR -> AppStrings(
                 teacherLogin = "تسجيل دخول المعلم",
-                laravelBaseUrl = "رابط Laravel",
+                laravelBaseUrl = "رابط API",
                 email = "البريد الإلكتروني",
                 password = "كلمة المرور",
                 mqttHost = "مضيف MQTT",
@@ -161,10 +161,10 @@ data class AppStrings(
                 absentCount = "الغائبون",
                 settings = "الإعدادات",
                 home = "الرئيسية",
-                apiBaseUrl = "رابط Laravel",
+                apiBaseUrl = "رابط API",
                 save = "حفظ",
                 currentBaseUrl = "الرابط الحالي",
-                settingsHint = "يمكنك تحديث عنوان Laravel هنا عندما يتغير المنفذ.",
+                settingsHint = "يمكنك تحديث عنوان API هنا عندما يتغير المنفذ.",
             )
         }
     }
