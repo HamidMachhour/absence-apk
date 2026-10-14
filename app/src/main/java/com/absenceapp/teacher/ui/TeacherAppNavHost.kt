@@ -10,11 +10,21 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.automirrored.outlined.Send
+import androidx.compose.material.icons.outlined.Download
+import androidx.compose.material.icons.outlined.History
+import androidx.compose.material.icons.outlined.Menu
+import androidx.compose.material.icons.outlined.PersonOff
+import androidx.compose.material.icons.outlined.QrCodeScanner
+import androidx.compose.material.icons.outlined.RestartAlt
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.DropdownMenuItem
@@ -28,12 +38,14 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.NavigationDrawerItem
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -44,10 +56,21 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.absenceapp.teacher.domain.AppLanguage
+import com.absenceapp.teacher.ui.components.BarcodeScannerScreen
+import com.absenceapp.teacher.ui.components.CollapsibleCard
+import com.absenceapp.teacher.ui.components.ManechTile
+import com.absenceapp.teacher.ui.components.ManechTitleBar
+import com.absenceapp.teacher.ui.theme.ManechAccent
+import com.absenceapp.teacher.ui.theme.ManechSurface
+import com.absenceapp.teacher.ui.theme.ManechTitle
+import com.absenceapp.teacher.ui.theme.manechSwitchColors
+import com.absenceapp.teacher.ui.theme.manechTextFieldColors
 import com.absenceapp.teacher.ui.viewmodel.AppUiState
 import com.absenceapp.teacher.ui.viewmodel.SeanceOption
 import com.absenceapp.teacher.ui.viewmodel.TeacherViewModel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 data class AppStrings(
@@ -87,6 +110,15 @@ data class AppStrings(
     val save: String,
     val currentBaseUrl: String,
     val settingsHint: String,
+    val openMenu: String,
+    val markAllAbsent: String,
+    val scanCode: String,
+    val scanInstruction: String,
+    val cameraPermissionRequired: String,
+    val grantPermission: String,
+    val studentMarkedPresent: String,
+    val codeNotRecognized: String,
+    val close: String,
 ) {
     companion object {
         fun forLanguage(language: AppLanguage): AppStrings = when (language) {
@@ -127,6 +159,15 @@ data class AppStrings(
                 save = "Save",
                 currentBaseUrl = "Current URL",
                 settingsHint = "Update the API address here when the server port changes.",
+                openMenu = "Open menu",
+                markAllAbsent = "Mark all absent",
+                scanCode = "Scan code",
+                scanInstruction = "Point the camera at a student's code",
+                cameraPermissionRequired = "Camera permission is required to scan codes.",
+                grantPermission = "Grant permission",
+                studentMarkedPresent = "%s marked present",
+                codeNotRecognized = "Code not recognized",
+                close = "Close",
             )
             AppLanguage.AR -> AppStrings(
                 teacherLogin = "تسجيل دخول المعلم",
@@ -165,6 +206,15 @@ data class AppStrings(
                 save = "حفظ",
                 currentBaseUrl = "الرابط الحالي",
                 settingsHint = "يمكنك تحديث عنوان API هنا عندما يتغير المنفذ.",
+                openMenu = "فتح القائمة",
+                markAllAbsent = "تعليم الكل غائب",
+                scanCode = "مسح الرمز",
+                scanInstruction = "وجّه الكاميرا نحو رمز الطالب",
+                cameraPermissionRequired = "إذن الكاميرا مطلوب لمسح الرموز.",
+                grantPermission = "منح الإذن",
+                studentMarkedPresent = "تم تسجيل حضور %s",
+                codeNotRecognized = "الرمز غير معروف",
+                close = "إغلاق",
             )
         }
     }
@@ -172,7 +222,9 @@ data class AppStrings(
 
 private enum class HomeSection {
     HOME,
+    SEANCE,
     SETTINGS,
+    SCANNER,
 }
 
 @Composable
@@ -200,38 +252,48 @@ fun LoginScreen(uiState: AppUiState, viewModel: TeacherViewModel) {
             horizontalArrangement = Arrangement.End,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Button(
+            OutlinedButton(
                 onClick = {
                     viewModel.setLanguage(if (uiState.language == AppLanguage.EN) AppLanguage.AR else AppLanguage.EN)
                 },
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = ManechTitle),
+                border = BorderStroke(1.dp, ManechTitle),
             ) {
                 Text(if (uiState.language == AppLanguage.EN) "AR" else "EN")
             }
         }
-        Text(strings.teacherLogin, style = MaterialTheme.typography.headlineMedium)
+        Text(
+            strings.teacherLogin,
+            style = MaterialTheme.typography.headlineMedium,
+            color = ManechAccent,
+        )
         Spacer(modifier = Modifier.height(16.dp))
         OutlinedTextField(
             value = uiState.baseUrl,
             onValueChange = { viewModel.updateBaseUrl(it) },
             label = { Text(strings.laravelBaseUrl) },
+            colors = manechTextFieldColors(),
             modifier = Modifier.fillMaxWidth(),
         )
         OutlinedTextField(
             value = uiState.email,
             onValueChange = { viewModel.updateLoginForm(it, uiState.password) },
             label = { Text(strings.email) },
+            colors = manechTextFieldColors(),
             modifier = Modifier.fillMaxWidth(),
         )
         OutlinedTextField(
             value = uiState.password,
             onValueChange = { viewModel.updateLoginForm(uiState.email, it) },
             label = { Text(strings.password) },
+            colors = manechTextFieldColors(),
             modifier = Modifier.fillMaxWidth(),
         )
         OutlinedTextField(
             value = uiState.mqttConfig.host,
             onValueChange = { viewModel.updateMqttConfig(uiState.mqttConfig.copy(host = it)) },
             label = { Text(strings.mqttHost) },
+            colors = manechTextFieldColors(),
             modifier = Modifier.fillMaxWidth(),
         )
         OutlinedTextField(
@@ -242,18 +304,21 @@ fun LoginScreen(uiState: AppUiState, viewModel: TeacherViewModel) {
             },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             label = { Text(strings.mqttPort) },
+            colors = manechTextFieldColors(),
             modifier = Modifier.fillMaxWidth(),
         )
         OutlinedTextField(
             value = uiState.mqttConfig.username,
             onValueChange = { viewModel.updateMqttConfig(uiState.mqttConfig.copy(username = it)) },
             label = { Text(strings.mqttUsername) },
+            colors = manechTextFieldColors(),
             modifier = Modifier.fillMaxWidth(),
         )
         OutlinedTextField(
             value = uiState.mqttConfig.password,
             onValueChange = { viewModel.updateMqttConfig(uiState.mqttConfig.copy(password = it)) },
             label = { Text(strings.mqttPassword) },
+            colors = manechTextFieldColors(),
             modifier = Modifier.fillMaxWidth(),
         )
         Spacer(modifier = Modifier.height(12.dp))
@@ -268,6 +333,7 @@ fun LoginScreen(uiState: AppUiState, viewModel: TeacherViewModel) {
                 )
             },
             enabled = !uiState.isLoading,
+            colors = ButtonDefaults.buttonColors(containerColor = ManechAccent, contentColor = ManechSurface),
             modifier = Modifier.fillMaxWidth(),
         ) {
             if (uiState.isLoading) CircularProgressIndicator() else Text(strings.login)
@@ -296,6 +362,7 @@ fun SeancePicker(
             readOnly = true,
             label = { Text(strings.seance) },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            colors = manechTextFieldColors(),
             modifier = Modifier
                 .fillMaxWidth()
                 .menuAnchor(),
@@ -323,9 +390,16 @@ fun HomeScreen(uiState: AppUiState, viewModel: TeacherViewModel) {
     val strings = AppStrings.forLanguage(uiState.language)
     var currentSection by remember { mutableStateOf(HomeSection.HOME) }
     var rosterExpanded by remember { mutableStateOf(true) }
-    var headerExpanded by remember { mutableStateOf(true) }
+    var scanFeedback by remember { mutableStateOf<String?>(null) }
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
+
+    LaunchedEffect(scanFeedback) {
+        if (scanFeedback != null) {
+            delay(1500)
+            scanFeedback = null
+        }
+    }
 
     ModalNavigationDrawer(
         drawerState = drawerState,
@@ -342,6 +416,14 @@ fun HomeScreen(uiState: AppUiState, viewModel: TeacherViewModel) {
                     selected = currentSection == HomeSection.HOME,
                     onClick = {
                         currentSection = HomeSection.HOME
+                        scope.launch { drawerState.close() }
+                    },
+                )
+                NavigationDrawerItem(
+                    label = { Text(strings.seance) },
+                    selected = currentSection == HomeSection.SEANCE,
+                    onClick = {
+                        currentSection = HomeSection.SEANCE
                         scope.launch { drawerState.close() }
                     },
                 )
@@ -374,27 +456,50 @@ fun HomeScreen(uiState: AppUiState, viewModel: TeacherViewModel) {
     ) {
         Scaffold(
             topBar = {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 12.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                ) {
-                    IconButton(onClick = { scope.launch { drawerState.open() } }) {
-                        Icon(Icons.Default.Menu, contentDescription = "Open menu")
-                    }
-                    Button(
-                        onClick = {
-                            viewModel.setLanguage(if (uiState.language == AppLanguage.EN) AppLanguage.AR else AppLanguage.EN)
-                        },
+                Column {
+                    ManechTitleBar(title = uiState.session?.teacherName ?: strings.teacher)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(ManechSurface)
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Text(if (uiState.language == AppLanguage.EN) "AR" else "EN")
+                        IconButton(onClick = { scope.launch { drawerState.open() } }) {
+                            Icon(Icons.Outlined.Menu, contentDescription = strings.openMenu, tint = ManechAccent)
+                        }
                     }
-                    Text(
-                        uiState.session?.teacherName ?: strings.teacher,
-                        style = MaterialTheme.typography.titleLarge,
-                    )
+                    if (currentSection == HomeSection.HOME) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(ManechSurface)
+                                .horizontalScroll(rememberScrollState())
+                                .padding(horizontal = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            IconButton(onClick = { viewModel.loadRoster() }) {
+                                Icon(Icons.Outlined.Download, contentDescription = strings.loadRoster, tint = ManechAccent)
+                            }
+                            IconButton(onClick = { viewModel.openLastRoster() }) {
+                                Icon(Icons.Outlined.History, contentDescription = strings.openLast, tint = ManechAccent)
+                            }
+                            if (uiState.roster != null) {
+                                IconButton(onClick = { viewModel.markAllAbsent() }) {
+                                    Icon(Icons.Outlined.PersonOff, contentDescription = strings.markAllAbsent, tint = ManechAccent)
+                                }
+                                IconButton(onClick = { viewModel.resetAttendance() }) {
+                                    Icon(Icons.Outlined.RestartAlt, contentDescription = strings.reset, tint = ManechAccent)
+                                }
+                                IconButton(onClick = { viewModel.submitAttendance() }) {
+                                    Icon(Icons.AutoMirrored.Outlined.Send, contentDescription = strings.submitAttendance, tint = ManechAccent)
+                                }
+                                IconButton(onClick = { currentSection = HomeSection.SCANNER }) {
+                                    Icon(Icons.Outlined.QrCodeScanner, contentDescription = strings.scanCode, tint = ManechAccent)
+                                }
+                            }
+                        }
+                    }
                 }
             },
         ) { paddingValues ->
@@ -406,87 +511,69 @@ fun HomeScreen(uiState: AppUiState, viewModel: TeacherViewModel) {
         ) {
             if (currentSection == HomeSection.SETTINGS) {
                 SettingsScreen(uiState, strings, viewModel)
+            } else if (currentSection == HomeSection.SEANCE) {
+                SeanceSelectionScreen(
+                    uiState = uiState,
+                    strings = strings,
+                    viewModel = viewModel,
+                    onSeanceSelected = { currentSection = HomeSection.HOME },
+                )
+            } else if (currentSection == HomeSection.SCANNER) {
+                BarcodeScannerScreen(
+                    instructionText = strings.scanInstruction,
+                    permissionRationale = strings.cameraPermissionRequired,
+                    grantPermissionLabel = strings.grantPermission,
+                    closeLabel = strings.close,
+                    feedbackText = scanFeedback,
+                    onCodeScanned = { code ->
+                        val matchedName = viewModel.markPresentByScannedCode(code)
+                        scanFeedback = if (matchedName != null) {
+                            strings.studentMarkedPresent.format(matchedName)
+                        } else {
+                            strings.codeNotRecognized
+                        }
+                    },
+                    onClose = { currentSection = HomeSection.HOME },
+                )
             } else {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    onClick = { headerExpanded = !headerExpanded },
-                ) {
-                    Column(Modifier.padding(12.dp)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Text(strings.session)
-                            Text(if (headerExpanded) strings.hide else strings.show)
-                        }
-
-                        if (headerExpanded) {
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text("${strings.mqtt}: ${uiState.mqttStatus}")
-                            Text("${strings.lastMqtt}: ${uiState.lastMqttMessage.ifBlank { strings.noMessages }}")
-                            Spacer(modifier = Modifier.height(12.dp))
-                            SeancePicker(
-                                selectedSeanceId = uiState.seanceId,
-                                options = uiState.availableSeanceOptions,
-                                strings = strings,
-                                onSelect = { viewModel.selectSeance(it) },
-                            )
-                        }
-                    }
-                }
+                val selectedSeanceLabel = uiState.availableSeanceOptions
+                    .firstOrNull { it.id == uiState.seanceId }
+                    ?.label
+                    ?: uiState.seanceId.ifBlank { strings.selectSeance }
+                Text(
+                    "${strings.seance}: $selectedSeanceLabel",
+                    color = ManechAccent,
+                    fontSize = 14.sp,
+                )
 
                 Spacer(modifier = Modifier.height(8.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Button(onClick = { viewModel.loadRoster() }) { Text(strings.loadRoster) }
-                    Button(onClick = { viewModel.openLastRoster() }) { Text(strings.openLast) }
-                }
-                Spacer(modifier = Modifier.height(12.dp))
                 if (uiState.rosterError != null) {
                     Text(uiState.rosterError, color = MaterialTheme.colorScheme.error)
                 }
                 if (uiState.roster != null) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            onClick = { rosterExpanded = !rosterExpanded },
+                        CollapsibleCard(
+                            expanded = rosterExpanded,
+                            onToggleExpanded = { rosterExpanded = !rosterExpanded },
+                            expandContentDescription = strings.show,
+                            collapseContentDescription = strings.hide,
+                            header = {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(uiState.roster.classeName, color = ManechSurface, fontSize = 16.sp)
+                                    Text(uiState.roster.subject, color = ManechSurface, fontSize = 14.sp)
+                                }
+                            },
                         ) {
-                            Column(Modifier.padding(12.dp)) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically,
-                                ) {
-                                    Column {
-                                        Text(
-                                            uiState.roster.classeName,
-                                            style = MaterialTheme.typography.titleMedium,
-                                        )
-                                        Text(uiState.roster.subject)
-                                    }
-                                    Text(if (rosterExpanded) strings.hide else strings.show)
-                                }
+                            Text("${strings.salle}: ${uiState.roster.salle}", color = ManechTitle, fontSize = 14.sp)
+                            Text(
+                                "${strings.absentCount}: ${uiState.roster.students.count { uiState.attendanceDraft[it.id] == true }}",
+                                color = ManechTitle,
+                                fontSize = 14.sp,
+                            )
 
-                                if (rosterExpanded) {
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    Text("${strings.salle}: ${uiState.roster.salle}")
-                                    Text("${strings.absentCount}: ${uiState.roster.students.count { uiState.attendanceDraft[it.id] == true }}")
-                                }
-                            }
-                        }
-
-                        if (rosterExpanded) {
                             Spacer(modifier = Modifier.height(12.dp))
                             if (uiState.pendingSync) {
-                                Text(strings.pendingSync)
-                            }
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Button(onClick = { viewModel.resetAttendance() }) { Text(strings.reset) }
-                                Button(onClick = { viewModel.submitAttendance() }) { Text(strings.submitAttendance) }
+                                Text(strings.pendingSync, color = ManechTitle, fontSize = 14.sp)
                             }
                             Spacer(modifier = Modifier.height(12.dp))
                             LazyColumn(
@@ -496,24 +583,17 @@ fun HomeScreen(uiState: AppUiState, viewModel: TeacherViewModel) {
                             ) {
                                 items(uiState.roster.students) { student ->
                                     val absent = uiState.attendanceDraft[student.id] == true
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(vertical = 6.dp),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                    ) {
-                                        Column {
-                                            Text("${student.num}. ${student.name}")
-                                        }
-                                        Row(verticalAlignment = Alignment.CenterVertically) {
-                                            Text(if (absent) strings.absent else strings.present)
+                                    ManechTile(
+                                        primaryText = "${student.num}. ${student.name}",
+                                        secondaryText = if (absent) strings.absent else strings.present,
+                                        trailing = {
                                             Switch(
                                                 checked = absent,
                                                 onCheckedChange = { viewModel.toggleAbsent(student.id) },
+                                                colors = manechSwitchColors(),
                                             )
-                                        }
-                                    }
+                                        },
+                                    )
                                 }
                             }
                         }
@@ -527,26 +607,69 @@ fun HomeScreen(uiState: AppUiState, viewModel: TeacherViewModel) {
 }
 
 @Composable
+private fun SeanceSelectionScreen(
+    uiState: AppUiState,
+    strings: AppStrings,
+    viewModel: TeacherViewModel,
+    onSeanceSelected: () -> Unit,
+) {
+    CollapsibleCard(
+        expanded = true,
+        onToggleExpanded = {},
+        expandContentDescription = strings.show,
+        collapseContentDescription = strings.hide,
+        collapsible = false,
+        header = { Text(strings.seance, color = ManechSurface, fontSize = 16.sp) },
+    ) {
+        Text("${strings.mqtt}: ${uiState.mqttStatus}", color = ManechTitle, fontSize = 14.sp)
+        Text(
+            "${strings.lastMqtt}: ${uiState.lastMqttMessage.ifBlank { strings.noMessages }}",
+            color = ManechTitle,
+            fontSize = 14.sp,
+        )
+        Spacer(modifier = Modifier.height(12.dp))
+        SeancePicker(
+            selectedSeanceId = uiState.seanceId,
+            options = uiState.availableSeanceOptions,
+            strings = strings,
+            onSelect = {
+                viewModel.selectSeance(it)
+                onSeanceSelected()
+            },
+        )
+    }
+}
+
+@Composable
 private fun SettingsScreen(
     uiState: AppUiState,
     strings: AppStrings,
     viewModel: TeacherViewModel,
 ) {
-    Column {
-        Text(strings.settings, style = MaterialTheme.typography.headlineSmall)
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(strings.settingsHint)
+    CollapsibleCard(
+        expanded = true,
+        onToggleExpanded = {},
+        expandContentDescription = strings.show,
+        collapseContentDescription = strings.hide,
+        collapsible = false,
+        header = { Text(strings.settings, color = ManechSurface, fontSize = 16.sp) },
+    ) {
+        Text(strings.settingsHint, color = ManechTitle, fontSize = 14.sp)
         Spacer(modifier = Modifier.height(16.dp))
         OutlinedTextField(
             value = uiState.baseUrl,
             onValueChange = { viewModel.updateBaseUrl(it) },
             label = { Text(strings.apiBaseUrl) },
+            colors = manechTextFieldColors(),
             modifier = Modifier.fillMaxWidth(),
         )
         Spacer(modifier = Modifier.height(8.dp))
-        Text("${strings.currentBaseUrl}: ${uiState.baseUrl}")
+        Text("${strings.currentBaseUrl}: ${uiState.baseUrl}", color = ManechTitle, fontSize = 14.sp)
         Spacer(modifier = Modifier.height(16.dp))
-        Button(onClick = { viewModel.saveBaseUrl() }) {
+        Button(
+            onClick = { viewModel.saveBaseUrl() },
+            colors = ButtonDefaults.buttonColors(containerColor = ManechAccent, contentColor = ManechSurface),
+        ) {
             Text(strings.save)
         }
         uiState.settingsMessage?.let {

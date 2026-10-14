@@ -36,6 +36,7 @@ class StudentListConverter {
 @Serializable
 data class StoredStudent(
     val id: String,
+    val userId: String,
     val num: Int = 0,
     val name: String,
     val photoUrl: String? = null,

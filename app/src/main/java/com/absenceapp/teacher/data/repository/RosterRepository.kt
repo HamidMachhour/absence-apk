@@ -28,6 +28,7 @@ class RosterRepository(
         val stored = roster.students.map {
             StoredStudent(
                 id = it.id,
+                userId = it.userId,
                 num = it.num,
                 name = it.name,
                 photoUrl = it.photoUrl,
@@ -70,6 +71,7 @@ private fun RoomSeanceRoster.toDomain(json: Json): SeanceRoster {
         students = students.map {
             StudentRosterItem(
                 id = it.id,
+                userId = it.userId,
                 num = it.num,
                 name = it.name,
                 photoUrl = it.photoUrl,
@@ -88,6 +90,7 @@ private fun RosterResponseDto.toDomain(): SeanceRoster {
         students = students.map {
             StudentRosterItem(
                 id = it.id,
+                userId = it.user_id,
                 num = it.num,
                 name = it.name,
                 photoUrl = it.photo_url,

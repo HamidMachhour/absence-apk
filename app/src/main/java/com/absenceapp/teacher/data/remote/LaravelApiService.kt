@@ -118,6 +118,7 @@ data class RosterResponseDto(
 data class StudentDto(
     @Serializable(with = StringOrNumberSerializer::class)
     val id: String,
+    val user_id: String,
     val num: Int = 0,
     val name: String,
     val photo_url: String? = null,

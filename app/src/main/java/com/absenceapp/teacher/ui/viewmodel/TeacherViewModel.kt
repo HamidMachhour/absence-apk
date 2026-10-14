@@ -227,6 +227,35 @@ class TeacherViewModel(private val container: AppContainer) : ViewModel() {
         )
     }
 
+    /** Bulk action: marks every student in the current roster as absent by default. */
+    fun markAllAbsent() {
+        val roster = _uiState.value.roster ?: return
+        _uiState.value = _uiState.value.copy(
+            attendanceDraft = roster.students.associate { it.id to true }.toMutableMap(),
+        )
+    }
+
+    /**
+     * Matches a scanned student code (tried against the student id, then the student number)
+     * and marks that student present. Returns the matched student's display name, or null if
+     * no student in the current roster matches the scanned code.
+     */
+    fun markPresentByScannedCode(code: String): String? {
+        val roster = _uiState.value.roster ?: return null
+        val trimmed = code.trim()
+        val studentId = try {
+            val jsonObject = org.json.JSONObject(trimmed)
+            jsonObject.getString("student_id")
+        } catch (e: Exception) {
+            null 
+        }
+        val student = roster.students.firstOrNull { it.userId == studentId ||  it.id == studentId } ?: return null
+        val current = _uiState.value.attendanceDraft.toMutableMap()
+        current[student.id] = false
+        _uiState.value = _uiState.value.copy(attendanceDraft = current)
+        return student.name
+    }
+
     fun submitAttendance() {
         val session = _uiState.value.session ?: return
         val roster = _uiState.value.roster ?: return
